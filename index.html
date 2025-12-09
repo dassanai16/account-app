@@ -1,10 +1,75 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<style>
+#lockScreen button {
+  padding:15px;
+  font-size:20px;
+  border:none;
+  border-radius:10px;
+  background:#333;
+  color:white;
+}
+
+#lockScreen button:active {
+  background:#555;
+}
+</style>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>บัญชีรายรับ–รายจ่าย</title>
 <link rel="manifest" href="manifest.json">
+
+<!-- 🔒 PIN Lock Screen -->
+<div id="lockScreen" style="
+  position:fixed;
+  inset:0;
+  background:#111;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+">
+  <div style="width:90%;max-width:320px;text-align:center">
+
+    <h2>🔐 ใส่ PIN</h2>
+
+    <!-- PIN dots -->
+    <div id="pinDots" style="font-size:32px;letter-spacing:12px;margin:15px 0">
+      ○ ○ ○ ○
+    </div>
+
+    <!-- ATM keypad -->
+    <div style="
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+    ">
+      <button onclick="pressNum(1)">1</button>
+      <button onclick="pressNum(2)">2</button>
+      <button onclick="pressNum(3)">3</button>
+
+      <button onclick="pressNum(4)">4</button>
+      <button onclick="pressNum(5)">5</button>
+      <button onclick="pressNum(6)">6</button>
+
+      <button onclick="pressNum(7)">7</button>
+      <button onclick="pressNum(8)">8</button>
+      <button onclick="pressNum(9)">9</button>
+
+      <button onclick="clearPin()">⌫</button>
+      <button onclick="pressNum(0)">0</button>
+      <button onclick="submitPin()">✔</button>
+    </div>
+
+    <p id="lockMsg" style="color:red;margin-top:10px"></p>
+
+  </div>
+</div>
+
+
 
 <style>
 body {
@@ -228,5 +293,65 @@ if("serviceWorker" in navigator){
     navigator.serviceWorker.register("sw.js");
 }
 </script>
+<script>
+let pinBuffer = "";
+
+function updateDots() {
+  const dots = pinBuffer.length;
+  document.getElementById("pinDots").textContent =
+    "● ".repeat(dots) + "○ ".repeat(4 - dots);
+}
+
+function pressNum(num) {
+  if (pinBuffer.length < 4) {
+    pinBuffer += num;
+    updateDots();
+  }
+}
+
+function clearPin() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updateDots();
+}
+
+async function hash(text) {
+  const data = new TextEncoder().encode(text);
+  const buffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function submitPin() {
+  const msg = document.getElementById("lockMsg");
+
+  if (pinBuffer.length !== 4) {
+    msg.textContent = "กรุณาใส่ PIN ให้ครบ 4 หลัก";
+    return;
+  }
+
+  const pinHash = await hash(pinBuffer);
+  const savedHash = localStorage.getItem("app_pin");
+
+  // ✅ ตั้ง PIN ครั้งแรก
+  if (!savedHash) {
+    localStorage.setItem("app_pin", pinHash);
+    document.getElementById("lockScreen").style.display = "none";
+    alert("ตั้ง PIN สำเร็จ ✅");
+    return;
+  }
+
+  // ✅ ตรวจ PIN
+  if (pinHash === savedHash) {
+    document.getElementById("lockScreen").style.display = "none";
+  } else {
+    msg.textContent = "PIN ไม่ถูกต้อง ❌";
+    pinBuffer = "";
+    updateDots();
+  }
+}
+</script>
+
+
 </body>
 </html>
