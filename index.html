@@ -65,8 +65,98 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
 }
 .edit-actions button{flex:1}
 .danger{background:#dc3545}
+
+/* ✅ FIX layout รายการ + ปุ่มแก้ไข */
+.record{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.record > span:last-child{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+/* override button 100% */
+.record button{
+  width:auto !important;
+  min-width:auto !important;
+  padding:4px 6px !important;
+  margin:0 !important;
+  font-size:12px;
+  line-height:1;
+}
+/* ✅ MODAL EDIT */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
+.modal-box{
+  background:#fff;
+  width:90%;
+  max-width:360px;
+  border-radius:16px;
+  padding:16px;
+  animation:pop .2s ease;
+}
+@keyframes pop{
+  from{transform:scale(.9);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+.type-switch{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+.type-switch button{
+  flex:1;
+  background:#eee;
+  color:#000;
+}
+.type-switch .active{
+  background:#0d6efd;
+  color:#fff;
+}
+.modal-actions{
+  margin-top:12px;
+  display:flex;
+  gap:8px;
+}
+.modal-actions button{flex:1}
+.danger{background:#dc3545}
+.ghost{background:#6c757d}
+
+
 </style>
 </head>
+<!-- ✅ EDIT POPUP -->
+<div id="editModal" class="modal">
+  <div class="modal-box">
+    <h3>✏️ แก้ไขรายการ</h3>
+
+    <input type="date" id="editDate">
+    <input type="text" id="editTitle" placeholder="รายการ">
+    <input type="number" id="editAmount" placeholder="จำนวนเงิน">
+
+    <div class="type-switch">
+      <button id="btnIncome" onclick="setEditType('income')">รายรับ</button>
+      <button id="btnExpense" onclick="setEditType('expense')">รายจ่าย</button>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="saveEdit()">✅ บันทึก</button>
+      <button class="danger" onclick="deleteEdit()">🗑 ลบ</button>
+      <button class="ghost" onclick="closeEdit()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
 
 <body>
 
@@ -161,14 +251,13 @@ function render(){
         t = t.replace(new RegExp(q,"gi"),
           m=>`<span class="highlight">${m}</span>`);
       }
-      list.innerHTML += `
-        <div class="record ${r.type}">
-          <span onclick="editRecord(${idx})">${r.date} ${t}</span>
-          <span>
-            ${r.amount}
-            <button onclick="editRecord(${idx})">✏️</button>
-          </span>
-        </div>`;
+     list.innerHTML += `
+  <div class="record ${r.type}" onclick="openEdit(${idx})">
+    <span>${r.date} ${t}</span>
+    <span>${r.amount}</span>
+  </div>
+`;
+
     });
 }
 
@@ -287,6 +376,57 @@ function press(n){
 
 render();
 if("serviceWorker"in navigator){navigator.serviceWorker.register("./sw.js")}
+
+let editIndex = null;
+let editType = "income";
+
+function openEdit(i){
+  editIndex = i;
+  const r = records[i];
+
+  editDate.value = r.date;
+  editTitle.value = r.title;
+  editAmount.value = r.amount;
+  setEditType(r.type);
+
+  editModal.style.display = "flex";
+}
+
+function closeEdit(){
+  editModal.style.display = "none";
+}
+
+function setEditType(t){
+  editType = t;
+  btnIncome.classList.toggle("active", t==="income");
+  btnExpense.classList.toggle("active", t==="expense");
+}
+
+function saveEdit(){
+  if(editIndex===null) return;
+
+  records[editIndex] = {
+    date: editDate.value,
+    title: editTitle.value,
+    amount: +editAmount.value,
+    type: editType
+  };
+
+  localStorage.setItem("records", JSON.stringify(records));
+  closeEdit();
+  render();
+}
+
+function deleteEdit(){
+  if(editIndex===null) return;
+  if(!confirm("ลบรายการนี้?")) return;
+
+  records.splice(editIndex,1);
+  localStorage.setItem("records", JSON.stringify(records));
+  closeEdit();
+  render();
+}
+
 </script>
 </body>
 </html>
