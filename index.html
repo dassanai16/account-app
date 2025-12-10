@@ -6,114 +6,27 @@
 <title>บัญชีรายรับรายจ่าย</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #f4f6f9;
-}
+body{margin:0;font-family:system-ui,sans-serif;background:#f4f6f9}
+header{background:#0d6efd;color:#fff;padding:14px;text-align:center}
+#version{font-size:12px;opacity:.8}
+main{padding:12px}
+.card{background:#fff;border-radius:12px;padding:12px;margin-bottom:12px}
+input,select,button{width:100%;padding:10px;margin-top:6px;font-size:14px}
+button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
+.record{display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px solid #eee}
+.income{color:#0d6efd}
+.expense{color:#dc3545}
+.highlight{background:yellow}
 
-/* ===== Header ===== */
-header {
-  background: #0d6efd;
-  color: #fff;
-  padding: 14px;
-  text-align: center;
+/* PIN */
+#pinLock{
+  position:fixed;inset:0;background:#111;color:#fff;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  z-index:999
 }
-
-#version {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-/* ===== Layout ===== */
-main {
-  padding: 12px;
-}
-
-.card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-
-/* ===== Form ===== */
-input, select, button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 6px;
-  font-size: 14px;
-}
-
-button {
-  background: #0d6efd;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-}
-
-/* ===== Records ===== */
-.record {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  padding: 6px 0;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-}
-
-.income { color: #0d6efd; }
-.expense { color: #dc3545; }
-
-.highlight {
-  background: yellow;
-}
-
-/* ===== Update Bar ===== */
-#updateBar {
-  position: fixed;
-  bottom: -60px;
-  left: 0;
-  right: 0;
-  background: #198754;
-  color: #fff;
-  text-align: center;
-  padding: 12px;
-  transition: .4s;
-}
-#updateBar.show {
-  bottom: 0;
-}
-
-/* ===== PIN ===== */
-#pinLock {
-  position: fixed;
-  inset: 0;
-  background: #111;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.pin-dots {
-  letter-spacing: 10px;
-  font-size: 32px;
-}
-
-.keypad {
-  display: grid;
-  grid-template-columns: repeat(3, 80px);
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.keypad button {
-  height: 60px;
-  font-size: 20px;
-  border-radius: 10px;
-}
+.pin-dots{font-size:32px;letter-spacing:10px}
+.keypad{display:grid;grid-template-columns:repeat(3,80px);gap:10px;margin-top:20px}
+.keypad button{height:60px;font-size:20px;border-radius:10px}
 </style>
 </head>
 
@@ -121,7 +34,7 @@ button {
 
 <header>
   📊 บัญชีรายรับรายจ่าย
-  <div id="version">Version 1.3.1</div>
+  <div id="version">Version 1.5.0</div>
 </header>
 
 <main>
@@ -134,64 +47,60 @@ button {
     <option value="income">รายรับ</option>
     <option value="expense">รายจ่าย</option>
   </select>
-  <button onclick="addRecord()">เพิ่มรายการ</button>
+  <button onclick="addRecord()">➕ เพิ่มรายการ</button>
 </div>
 
 <div class="card">
-  <input type="text" id="search" placeholder="ค้นหา..." oninput="render()">
+  <input type="text" id="search" placeholder="🔍 ค้นหา..." oninput="render()">
 </div>
 
 <div class="card" id="list"></div>
 
 <div class="card">
+  <button onclick="showSummary()">📊 สรุปรายการ</button>
   <button onclick="backup()">📤 Backup</button>
   <button onclick="restore()">📥 Restore</button>
-</div>
-
-<div class="card">
-  <h3>📌 Changelog</h3>
-  <ul>
-    <li>1.3.1 – ระบบ Update อัตโนมัติ</li>
-    <li>1.3.0 – ค้นหา + ไฮไลต์</li>
-    <li>1.2.0 – PIN Lock</li>
-  </ul>
+  <button onclick="exportExcel()">📊 Export Excel</button>
 </div>
 
 </main>
 
-<div id="updateBar">🚀 กำลังอัปเดตเวอร์ชันใหม่...</div>
-
-<!-- ===== PIN LOCK ===== -->
-<div id="pinLock" style="display:none">
+<!-- PIN LOCK -->
+<div id="pinLock">
+  <div id="pinTitle">ตั้ง PIN 4 หลัก</div>
   <div class="pin-dots" id="dots">____</div>
   <div class="keypad"></div>
 </div>
 
 <script>
-/* ===== DATA ===== */
+/* ===== DATA (เดิมทั้งหมด) ===== */
 const records = JSON.parse(localStorage.getItem("records") || "[]");
 const PIN_KEY = "pinCode";
 
-/* ===== RECORDS ===== */
-function addRecord() {
+/* ===== RECORD ===== */
+function addRecord(){
   records.push({
-    date: date.value,
-    title: title.value,
-    amount: +amount.value,
-    type: type.value
+    date:date.value,
+    title:title.value,
+    amount:+amount.value,
+    type:type.value
   });
-  localStorage.setItem("records", JSON.stringify(records));
+  localStorage.setItem("records",JSON.stringify(records));
   render();
 }
 
-function render() {
+function render(){
   const q = search.value.toLowerCase();
-  list.innerHTML = "";
+  list.innerHTML="";
   records
-    .filter(r => r.title.toLowerCase().includes(q))
-    .forEach(r => {
-      let t = r.title.replace(q, `<span class="highlight">${q}</span>`);
-      list.innerHTML += `
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .filter(r=>r.title.toLowerCase().includes(q))
+    .forEach(r=>{
+      let t=r.title;
+      if(q){
+        t=t.replace(new RegExp(q,"gi"),m=>`<span class="highlight">${m}</span>`);
+      }
+      list.innerHTML+=`
         <div class="record ${r.type}">
           <span>${r.date} ${t}</span>
           <span>${r.amount}</span>
@@ -199,23 +108,38 @@ function render() {
     });
 }
 
-/* ===== BACKUP ===== */
-function backup() {
-  const blob = new Blob([JSON.stringify(localStorage)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "backup.json";
-  a.click();
+/* ===== SUMMARY ===== */
+function showSummary(){
+  let income=0, expense=0;
+  records.forEach(r=>{
+    if(r.type==="income") income+=r.amount;
+    if(r.type==="expense") expense+=r.amount;
+  });
+  const balance = income-expense;
+  alert(
+    "📊 สรุปรายการ\n\n"+
+    "รายรับ: "+income.toLocaleString()+"\n"+
+    "รายจ่าย: "+expense.toLocaleString()+"\n"+
+    "คงเหลือ: "+balance.toLocaleString()
+  );
 }
 
-function restore() {
-  const i = document.createElement("input");
-  i.type = "file";
-  i.onchange = e => {
-    const r = new FileReader();
-    r.onload = () => {
-      const data = JSON.parse(r.result);
-      for (let k in data) localStorage.setItem(k, data[k]);
+/* ===== BACKUP / RESTORE ===== */
+function backup(){
+  download(
+    new Blob([JSON.stringify(localStorage)],{type:"application/json"}),
+    "backup.json"
+  );
+}
+
+function restore(){
+  const i=document.createElement("input");
+  i.type="file";
+  i.onchange=e=>{
+    const r=new FileReader();
+    r.onload=()=>{
+      const data=JSON.parse(r.result);
+      for(let k in data) localStorage.setItem(k,data[k]);
       location.reload();
     };
     r.readAsText(e.target.files[0]);
@@ -223,40 +147,67 @@ function restore() {
   i.click();
 }
 
-/* ===== PIN ===== */
-let pin = "";
-const lock = document.getElementById("pinLock");
-if (localStorage.getItem(PIN_KEY)) lock.style.display="flex";
-
-function buildPad() {
-  const pad = document.querySelector(".keypad");
-  pad.innerHTML="";
-  [...Array(10).keys()].forEach(n=>{
-    const b=document.createElement("button");
-    b.textContent=n;
-    b.onclick=()=>press(n);
-    pad.appendChild(b);
+/* ===== EXPORT EXCEL ===== */
+function exportExcel(){
+  let html="<table><tr><th>วันที่</th><th>รายการ</th><th>จำนวน</th><th>ประเภท</th></tr>";
+  records.forEach(r=>{
+    html+=`<tr><td>${r.date}</td><td>${r.title}</td><td>${r.amount}</td><td>${r.type}</td></tr>`;
   });
+  html+="</table>";
+  download(
+    new Blob(['\ufeff'+html],{type:"application/vnd.ms-excel"}),
+    "records.xls"
+  );
+}
+
+function download(blob,name){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  a.click();
+}
+
+/* ===== PIN LOCK ===== */
+const pinLock=document.getElementById("pinLock");
+const dots=document.getElementById("dots");
+const pinTitle=document.getElementById("pinTitle");
+let pin="";
+const savedPIN=localStorage.getItem(PIN_KEY);
+let mode=savedPIN?"unlock":"setup";
+pinTitle.textContent = mode==="setup"?"ตั้ง PIN 4 หลัก":"ใส่ PIN";
+
+function buildPad(){
+  const pad=document.querySelector(".keypad");
+  pad.innerHTML="";
+  for(let i=1;i<=9;i++) addBtn(i);
+  addBtn(0);
+}
+function addBtn(n){
+  const b=document.createElement("button");
+  b.textContent=n;
+  b.onclick=()=>press(n);
+  document.querySelector(".keypad").appendChild(b);
 }
 buildPad();
 
-function press(n) {
+function press(n){
   pin+=n;
-  dots.textContent = pin.padEnd(4,"_");
-  if (pin.length===4) {
-    if (pin===localStorage.getItem(PIN_KEY)) lock.style.display="none";
+  dots.textContent=pin.padEnd(4,"_");
+  if(pin.length===4){
+    if(mode==="setup"){
+      localStorage.setItem(PIN_KEY,pin);
+      alert("ตั้ง PIN เรียบร้อย");
+      pinLock.style.display="none";
+    }else{
+      if(pin===savedPIN){
+        pinLock.style.display="none";
+      }else{
+        alert("PIN ไม่ถูกต้อง");
+      }
+    }
     pin="";
     dots.textContent="____";
   }
-}
-
-/* ===== SERVICE WORKER ===== */
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
-  navigator.serviceWorker.addEventListener("controllerchange",()=>{
-    updateBar.classList.add("show");
-    setTimeout(()=>location.reload(),1500);
-  });
 }
 
 render();
