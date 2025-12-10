@@ -1,32 +1,30 @@
-const CACHE_NAME = "acc-v2"; // ✅ เปลี่ยนเลขทุกครั้งที่แก้โค้ด
+const CACHE_VERSION = "acc-v1.3.0";
 const FILES = [
   "./",
   "./index.html",
   "./manifest.json"
 ];
 
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(FILES))
+self.addEventListener("install", e => {
+  self.skipWaiting();
+  e.waitUntil(
+    caches.open(CACHE_VERSION).then(c => c.addAll(FILES))
   );
-  self.skipWaiting(); // ✅ ใช้ของใหม่ทันที
 });
 
-self.addEventListener("activate", event => {
-  event.waitUntil(
+self.addEventListener("activate", e => {
+  e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
+        keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))
       )
     )
   );
-  self.clients.claim(); // ✅ คุมหน้าเว็บทันที
+  self.clients.claim();
 });
 
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request).then(res => res || fetch(event.request))
+self.addEventListener("fetch", e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request))
   );
 });
