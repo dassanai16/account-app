@@ -23,16 +23,6 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
 .expense{color:#dc3545}
 .highlight{background:yellow}
 
-/* ✅ แก้ปุ่มแก้ไขไม่ขึ้น */
-.record button{
-  width:auto;
-  margin:0;
-  padding:4px 6px;
-  font-size:12px;
-  border-radius:6px;
-}
-
-
 /* PIN */
 #pinLock{
   position:fixed;inset:0;background:#111;color:#fff;
@@ -42,80 +32,8 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
 .pin-dots{font-size:32px;letter-spacing:10px}
 .keypad{display:grid;grid-template-columns:repeat(3,80px);gap:10px;margin-top:20px}
 .keypad button{height:60px;font-size:20px;border-radius:10px}
-
-/* ✅ แก้ปุ่มแก้ไขในรายการ */
-.record button{
-  width:auto !important;
-  padding:4px 6px !important;
-  margin:0 !important;
-  font-size:12px;
-  border-radius:6px;
-  line-height:1;
-}
-<<<<<<< HEAD
-#editBox{
-  background:#fff;
-  width:90%;
-  max-width:400px;
-  border-radius:14px;
-  padding:14px;
-}
-#editBox h3{margin-top:0}
-.edit-actions{
-  display:flex;
-  gap:8px;
-}
-.edit-actions button{flex:1}
-.danger{background:#dc3545}
-
-/* ✅ FIX layout รายการ + ปุ่มแก้ไข */
-.record{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.record > span:last-child{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-
-/* override button 100% */
-.record button{
-  width:auto !important;
-  min-width:auto !important;
-  padding:4px 6px !important;
-  margin:0 !important;
-  font-size:12px;
-  line-height:1;
-}
-=======
->>>>>>> parent of e6b5fd1 (v2)
-
 </style>
 </head>
-<!-- ✅ EDIT POPUP -->
-<div id="editModal" class="modal">
-  <div class="modal-box">
-    <h3>✏️ แก้ไขรายการ</h3>
-
-    <input type="date" id="editDate">
-    <input type="text" id="editTitle" placeholder="รายการ">
-    <input type="number" id="editAmount" placeholder="จำนวนเงิน">
-
-    <div class="type-switch">
-      <button id="btnIncome" onclick="setEditType('income')">รายรับ</button>
-      <button id="btnExpense" onclick="setEditType('expense')">รายจ่าย</button>
-    </div>
-
-    <div class="modal-actions">
-      <button onclick="saveEdit()">✅ บันทึก</button>
-      <button class="danger" onclick="deleteEdit()">🗑 ลบ</button>
-      <button class="ghost" onclick="closeEdit()">ยกเลิก</button>
-    </div>
-  </div>
-</div>
 
 <body>
 
