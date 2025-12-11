@@ -5,6 +5,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d6efd">
 
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>บัญชีรายรับรายจ่าย</title>
@@ -22,16 +23,17 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
 .expense{color:#dc3545}
 .highlight{background:yellow}
 
-/* ✅ ปุ่มในรายการ */
+/* ✅ แก้ปุ่มแก้ไขไม่ขึ้น */
 .record button{
   width:auto;
+  margin:0;
   padding:4px 6px;
   font-size:12px;
   border-radius:6px;
-  margin-left:6px;
 }
 
-/* ===== PIN ===== */
+
+/* PIN */
 #pinLock{
   position:fixed;inset:0;background:#111;color:#fff;
   display:flex;flex-direction:column;justify-content:center;align-items:center;
@@ -41,16 +43,16 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
 .keypad{display:grid;grid-template-columns:repeat(3,80px);gap:10px;margin-top:20px}
 .keypad button{height:60px;font-size:20px;border-radius:10px}
 
-/* ===== EDIT POPUP ===== */
-#editModal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.5);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:2000;
+/* ✅ แก้ปุ่มแก้ไขในรายการ */
+.record button{
+  width:auto !important;
+  padding:4px 6px !important;
+  margin:0 !important;
+  font-size:12px;
+  border-radius:6px;
+  line-height:1;
 }
+<<<<<<< HEAD
 #editBox{
   background:#fff;
   width:90%;
@@ -88,6 +90,8 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
   font-size:12px;
   line-height:1;
 }
+=======
+>>>>>>> parent of e6b5fd1 (v2)
 
 </style>
 </head>
@@ -148,39 +152,19 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
 
 </main>
 
-<!-- ===== PIN LOCK ===== -->
+<!-- PIN LOCK -->
 <div id="pinLock">
   <div id="pinTitle">ตั้ง PIN 4 หลัก</div>
   <div class="pin-dots" id="dots">____</div>
   <div class="keypad"></div>
 </div>
 
-<!-- ===== EDIT POPUP ===== -->
-<div id="editModal">
-  <div id="editBox">
-    <h3>✏️ แก้ไขรายการ</h3>
-    <input type="date" id="eDate">
-    <input type="text" id="eTitle" placeholder="รายการ">
-    <input type="number" id="eAmount" placeholder="จำนวนเงิน">
-    <select id="eType">
-      <option value="income">รายรับ</option>
-      <option value="expense">รายจ่าย</option>
-    </select>
-
-    <div class="edit-actions">
-      <button onclick="saveEdit()">✅ บันทึก</button>
-      <button class="danger" onclick="deleteEdit()">🗑 ลบ</button>
-    </div>
-    <button onclick="closeEdit()">❌ ปิด</button>
-  </div>
-</div>
-
 <script>
-/* ===== DATA ===== */
+/* ===== DATA (เดิมทั้งหมด) ===== */
 const records = JSON.parse(localStorage.getItem("records") || "[]");
 const PIN_KEY = "pinCode";
 
-/* ===== ADD ===== */
+/* ===== RECORD ===== */
 function addRecord(){
   records.push({
     date:date.value,
@@ -192,7 +176,6 @@ function addRecord(){
   render();
 }
 
-/* ===== RENDER ===== */
 function render(){
   const q = search.value.toLowerCase();
   list.innerHTML="";
@@ -206,16 +189,23 @@ function render(){
         t = t.replace(new RegExp(q,"gi"),
           m=>`<span class="highlight">${m}</span>`);
       }
+
       list.innerHTML += `
         <div class="record ${r.type}">
-          <span onclick="editRecord(${idx})">${r.date} ${t}</span>
+          <span onclick="editRecord(${idx})">
+            ${r.date} ${t}
+          </span>
           <span>
             ${r.amount}
-            <button onclick="editRecord(${idx})">✏️</button>
+            <button onclick="editRecord(${idx})"
+              style="margin-left:6px;font-size:12px;padding:4px 6px">
+              ✏️
+            </button>
           </span>
         </div>`;
     });
 }
+
 
 /* ===== SUMMARY ===== */
 function showSummary(){
@@ -224,26 +214,31 @@ function showSummary(){
     if(r.type==="income") income+=r.amount;
     if(r.type==="expense") expense+=r.amount;
   });
+  const balance = income-expense;
   alert(
     "📊 สรุปรายการ\n\n"+
-    "รายรับ: "+income+"\n"+
-    "รายจ่าย: "+expense+"\n"+
-    "คงเหลือ: "+(income-expense)
+    "รายรับ: "+income.toLocaleString()+"\n"+
+    "รายจ่าย: "+expense.toLocaleString()+"\n"+
+    "คงเหลือ: "+balance.toLocaleString()
   );
 }
 
 /* ===== BACKUP / RESTORE ===== */
 function backup(){
-  download(new Blob([JSON.stringify(localStorage)],{type:"application/json"}),"backup.json");
+  download(
+    new Blob([JSON.stringify(localStorage)],{type:"application/json"}),
+    "backup.json"
+  );
 }
+
 function restore(){
   const i=document.createElement("input");
   i.type="file";
   i.onchange=e=>{
     const r=new FileReader();
     r.onload=()=>{
-      const d=JSON.parse(r.result);
-      for(let k in d) localStorage.setItem(k,d[k]);
+      const data=JSON.parse(r.result);
+      for(let k in data) localStorage.setItem(k,data[k]);
       location.reload();
     };
     r.readAsText(e.target.files[0]);
@@ -251,87 +246,102 @@ function restore(){
   i.click();
 }
 
-/* ===== EXPORT ===== */
+/* ===== EXPORT EXCEL ===== */
 function exportExcel(){
   let html="<table><tr><th>วันที่</th><th>รายการ</th><th>จำนวน</th><th>ประเภท</th></tr>";
   records.forEach(r=>{
     html+=`<tr><td>${r.date}</td><td>${r.title}</td><td>${r.amount}</td><td>${r.type}</td></tr>`;
   });
   html+="</table>";
-  download(new Blob(['\ufeff'+html],{type:"application/vnd.ms-excel"}),"records.xls");
+  download(
+    new Blob(['\ufeff'+html],{type:"application/vnd.ms-excel"}),
+    "records.xls"
+  );
 }
-function download(b,n){
+
+function download(blob,name){
   const a=document.createElement("a");
-  a.href=URL.createObjectURL(b);a.download=n;a.click();
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  a.click();
 }
 
-/* ===== EDIT POPUP ===== */
-let editIndex=null;
-function editRecord(i){
-  editIndex=i;
-  const r=records[i];
-  eDate.value=r.date;
-  eTitle.value=r.title;
-  eAmount.value=r.amount;
-  eType.value=r.type;
-  editModal.style.display="flex";
-}
-function closeEdit(){editModal.style.display="none"}
-function saveEdit(){
-  records[editIndex]={
-    date:eDate.value,
-    title:eTitle.value,
-    amount:+eAmount.value,
-    type:eType.value
-  };
-  localStorage.setItem("records",JSON.stringify(records));
-  closeEdit();render();
-}
-function deleteEdit(){
-  if(confirm("ลบรายการนี้?")){
-    records.splice(editIndex,1);
-    localStorage.setItem("records",JSON.stringify(records));
-    closeEdit();render();
-  }
-}
-
-/* ===== PIN ===== */
+/* ===== PIN LOCK ===== */
 const pinLock=document.getElementById("pinLock");
 const dots=document.getElementById("dots");
 const pinTitle=document.getElementById("pinTitle");
 let pin="";
 const savedPIN=localStorage.getItem(PIN_KEY);
 let mode=savedPIN?"unlock":"setup";
-pinTitle.textContent=mode==="setup"?"ตั้ง PIN 4 หลัก":"ใส่ PIN";
+pinTitle.textContent = mode==="setup"?"ตั้ง PIN 4 หลัก":"ใส่ PIN";
 
 function buildPad(){
-  const pad=document.querySelector(".keypad");pad.innerHTML="";
-  for(let i=1;i<=9;i++) btn(i);btn(0);
+  const pad=document.querySelector(".keypad");
+  pad.innerHTML="";
+  for(let i=1;i<=9;i++) addBtn(i);
+  addBtn(0);
 }
-function btn(n){
+function addBtn(n){
   const b=document.createElement("button");
-  b.textContent=n;b.onclick=()=>press(n);
+  b.textContent=n;
+  b.onclick=()=>press(n);
   document.querySelector(".keypad").appendChild(b);
 }
 buildPad();
 
 function press(n){
-  pin+=n;dots.textContent=pin.padEnd(4,"_");
+  pin+=n;
+  dots.textContent=pin.padEnd(4,"_");
   if(pin.length===4){
     if(mode==="setup"){
       localStorage.setItem(PIN_KEY,pin);
       alert("ตั้ง PIN เรียบร้อย");
       pinLock.style.display="none";
     }else{
-      if(pin===savedPIN) pinLock.style.display="none";
-      else alert("PIN ไม่ถูกต้อง");
+      if(pin===savedPIN){
+        pinLock.style.display="none";
+      }else{
+        alert("PIN ไม่ถูกต้อง");
+      }
     }
-    pin="";dots.textContent="____";
+    pin="";
+    dots.textContent="____";
   }
 }
 
 render();
-if("serviceWorker"in navigator){navigator.serviceWorker.register("./sw.js")}
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js");
+}
+function editRecord(i){
+  const r = records[i];
+
+  const d = prompt("วันที่ (YYYY-MM-DD)", r.date);
+  if(d === null) return;
+
+  const t = prompt("รายการ", r.title);
+  if(t === null) return;
+
+  const a = prompt("จำนวนเงิน", r.amount);
+  if(a === null || isNaN(a)) return;
+
+  const ty = prompt("ประเภท: income / expense", r.type);
+  if(!["income","expense"].includes(ty)) return;
+
+  records[i] = {
+    date: d,
+    title: t,
+    amount: +a,
+    type: ty
+  };
+
+  localStorage.setItem("records", JSON.stringify(records));
+  render();
+}
+
+
 </script>
 </body>
 </html>
+
