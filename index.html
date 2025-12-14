@@ -1,11 +1,8 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d6efd">
-
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>บัญชีรายรับรายจ่าย</title>
@@ -18,12 +15,12 @@ main{padding:12px}
 .card{background:#fff;border-radius:12px;padding:12px;margin-bottom:12px}
 input,select,button{width:100%;padding:10px;margin-top:6px;font-size:14px}
 button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
-.record{display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px solid #eee}
+.record{display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid #eee;cursor:pointer}
 .income{color:#0d6efd}
 .expense{color:#dc3545}
 .highlight{background:yellow}
 
-/* PIN */
+/* ===== PIN ===== */
 #pinLock{
   position:fixed;inset:0;background:#111;color:#fff;
   display:flex;flex-direction:column;justify-content:center;align-items:center;
@@ -32,14 +29,43 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
 .pin-dots{font-size:32px;letter-spacing:10px}
 .keypad{display:grid;grid-template-columns:repeat(3,80px);gap:10px;margin-top:20px}
 .keypad button{height:60px;font-size:20px;border-radius:10px}
+
+/* ===== EDIT MODAL ===== */
+#editModal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
+.modal-box{
+  background:#fff;
+  width:90%;
+  max-width:360px;
+  border-radius:16px;
+  padding:16px;
+  animation:pop .2s ease;
+}
+@keyframes pop{
+  from{transform:scale(.9);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+.type-switch{display:flex;gap:8px;margin-top:10px}
+.type-switch button{flex:1;background:#eee;color:#000}
+.type-switch .active{background:#0d6efd;color:#fff}
+.modal-actions{display:flex;gap:8px;margin-top:12px}
+.modal-actions button{flex:1}
+.danger{background:#dc3545}
+.ghost{background:#6c757d}
 </style>
 </head>
 
 <body>
 
 <header>
-  📊 บัญชีรายรับรายจ่าย
-  <div id="version">Version 1.5.0</div>
+📊 บัญชีรายรับรายจ่าย
+<div id="version">Version 1.5.0</div>
 </header>
 
 <main>
@@ -70,7 +96,28 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
 
 </main>
 
-<!-- PIN LOCK -->
+<!-- ===== EDIT POPUP ===== -->
+<div id="editModal">
+  <div class="modal-box">
+    <h3>✏️ แก้ไขรายการ</h3>
+    <input type="date" id="editDate">
+    <input type="text" id="editTitle">
+    <input type="number" id="editAmount">
+
+    <div class="type-switch">
+      <button id="btnIncome" onclick="setEditType('income')">รายรับ</button>
+      <button id="btnExpense" onclick="setEditType('expense')">รายจ่าย</button>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="saveEdit()">บันทึก</button>
+      <button class="danger" onclick="deleteEdit()">ลบ</button>
+      <button class="ghost" onclick="closeEdit()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PIN LOCK ===== -->
 <div id="pinLock">
   <div id="pinTitle">ตั้ง PIN 4 หลัก</div>
   <div class="pin-dots" id="dots">____</div>
@@ -78,11 +125,10 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
 </div>
 
 <script>
-/* ===== DATA (เดิมทั้งหมด) ===== */
-const records = JSON.parse(localStorage.getItem("records") || "[]");
-const PIN_KEY = "pinCode";
+const records = JSON.parse(localStorage.getItem("records")||"[]");
+const PIN_KEY="pinCode";
 
-/* ===== RECORD ===== */
+/* ===== ADD ===== */
 function addRecord(){
   records.push({
     date:date.value,
@@ -94,172 +140,112 @@ function addRecord(){
   render();
 }
 
+/* ===== RENDER ===== */
 function render(){
-  const q = search.value.toLowerCase();
+  const q=search.value.toLowerCase();
   list.innerHTML="";
-
   records
     .sort((a,b)=>a.date.localeCompare(b.date))
     .filter(r=>r.title.toLowerCase().includes(q))
-    .forEach((r,idx)=>{
-      let t = r.title;
-      if(q){
-        t = t.replace(new RegExp(q,"gi"),
-          m=>`<span class="highlight">${m}</span>`);
-      }
-
-      list.innerHTML += `
-        <div class="record ${r.type}">
-          <span onclick="editRecord(${idx})">
-            ${r.date} ${t}
-          </span>
-          <span>
-            ${r.amount}
-            <button onclick="editRecord(${idx})"
-              style="margin-left:6px;font-size:12px;padding:4px 6px">
-              ✏️
-            </button>
-          </span>
-        </div>`;
+    .forEach((r,i)=>{
+      list.innerHTML+=`
+      <div class="record ${r.type}" onclick="openEdit(${i})">
+        <span>${r.date} ${r.title}</span>
+        <span>${r.amount}</span>
+      </div>`;
     });
 }
 
+/* ===== EDIT ===== */
+let editIndex=null, editType="income";
+function openEdit(i){
+  editIndex=i;
+  const r=records[i];
+  editDate.value=r.date;
+  editTitle.value=r.title;
+  editAmount.value=r.amount;
+  setEditType(r.type);
+  editModal.style.display="flex";
+}
+function closeEdit(){editModal.style.display="none"}
+function setEditType(t){
+  editType=t;
+  btnIncome.classList.toggle("active",t==="income");
+  btnExpense.classList.toggle("active",t==="expense");
+}
+function saveEdit(){
+  records[editIndex]={
+    date:editDate.value,
+    title:editTitle.value,
+    amount:+editAmount.value,
+    type:editType
+  };
+  localStorage.setItem("records",JSON.stringify(records));
+  closeEdit();render();
+}
+function deleteEdit(){
+  if(!confirm("ลบรายการนี้?"))return;
+  records.splice(editIndex,1);
+  localStorage.setItem("records",JSON.stringify(records));
+  closeEdit();render();
+}
 
-/* ===== SUMMARY ===== */
+/* ===== SUMMARY / BACKUP / EXPORT ===== */
 function showSummary(){
-  let income=0, expense=0;
-  records.forEach(r=>{
-    if(r.type==="income") income+=r.amount;
-    if(r.type==="expense") expense+=r.amount;
-  });
-  const balance = income-expense;
-  alert(
-    "📊 สรุปรายการ\n\n"+
-    "รายรับ: "+income.toLocaleString()+"\n"+
-    "รายจ่าย: "+expense.toLocaleString()+"\n"+
-    "คงเหลือ: "+balance.toLocaleString()
-  );
+  let i=0,e=0;
+  records.forEach(r=>r.type==="income"?i+=r.amount:e+=r.amount);
+  alert(`รายรับ ${i}\nรายจ่าย ${e}\nคงเหลือ ${i-e}`);
 }
-
-/* ===== BACKUP / RESTORE ===== */
 function backup(){
-  download(
-    new Blob([JSON.stringify(localStorage)],{type:"application/json"}),
-    "backup.json"
-  );
+  download(new Blob([JSON.stringify(localStorage)],{type:"application/json"}),"backup.json");
 }
-
 function restore(){
-  const i=document.createElement("input");
-  i.type="file";
+  const i=document.createElement("input");i.type="file";
   i.onchange=e=>{
     const r=new FileReader();
     r.onload=()=>{
-      const data=JSON.parse(r.result);
-      for(let k in data) localStorage.setItem(k,data[k]);
+      const d=JSON.parse(r.result);
+      for(let k in d)localStorage.setItem(k,d[k]);
       location.reload();
     };
     r.readAsText(e.target.files[0]);
   };
   i.click();
 }
-
-/* ===== EXPORT EXCEL ===== */
 function exportExcel(){
   let html="<table><tr><th>วันที่</th><th>รายการ</th><th>จำนวน</th><th>ประเภท</th></tr>";
-  records.forEach(r=>{
-    html+=`<tr><td>${r.date}</td><td>${r.title}</td><td>${r.amount}</td><td>${r.type}</td></tr>`;
-  });
-  html+="</table>";
-  download(
-    new Blob(['\ufeff'+html],{type:"application/vnd.ms-excel"}),
-    "records.xls"
-  );
+  records.forEach(r=>html+=`<tr><td>${r.date}</td><td>${r.title}</td><td>${r.amount}</td><td>${r.type}</td></tr>`);
+  download(new Blob(['\ufeff'+html],{type:"application/vnd.ms-excel"}),"records.xls");
 }
-
-function download(blob,name){
+function download(b,n){
   const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=name;
-  a.click();
+  a.href=URL.createObjectURL(b);a.download=n;a.click();
 }
 
-/* ===== PIN LOCK ===== */
+/* ===== PIN ===== */
 const pinLock=document.getElementById("pinLock");
 const dots=document.getElementById("dots");
 const pinTitle=document.getElementById("pinTitle");
-let pin="";
-const savedPIN=localStorage.getItem(PIN_KEY);
+let pin="",savedPIN=localStorage.getItem(PIN_KEY);
 let mode=savedPIN?"unlock":"setup";
-pinTitle.textContent = mode==="setup"?"ตั้ง PIN 4 หลัก":"ใส่ PIN";
-
-function buildPad(){
-  const pad=document.querySelector(".keypad");
-  pad.innerHTML="";
-  for(let i=1;i<=9;i++) addBtn(i);
-  addBtn(0);
-}
-function addBtn(n){
+pinTitle.textContent=mode==="setup"?"ตั้ง PIN 4 หลัก":"ใส่ PIN";
+const pad=document.querySelector(".keypad");
+for(let i=1;i<=9;i++)btn(i);btn(0);
+function btn(n){
   const b=document.createElement("button");
-  b.textContent=n;
-  b.onclick=()=>press(n);
-  document.querySelector(".keypad").appendChild(b);
+  b.textContent=n;b.onclick=()=>press(n);pad.appendChild(b);
 }
-buildPad();
-
 function press(n){
-  pin+=n;
-  dots.textContent=pin.padEnd(4,"_");
+  pin+=n;dots.textContent=pin.padEnd(4,"_");
   if(pin.length===4){
-    if(mode==="setup"){
-      localStorage.setItem(PIN_KEY,pin);
-      alert("ตั้ง PIN เรียบร้อย");
-      pinLock.style.display="none";
-    }else{
-      if(pin===savedPIN){
-        pinLock.style.display="none";
-      }else{
-        alert("PIN ไม่ถูกต้อง");
-      }
-    }
-    pin="";
-    dots.textContent="____";
+    if(mode==="setup"){localStorage.setItem(PIN_KEY,pin);}
+    else if(pin!==savedPIN){alert("PIN ผิด");pin="";dots.textContent="____";return;}
+    pinLock.style.display="none";pin="";dots.textContent="____";
   }
 }
 
 render();
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js");
-}
-function editRecord(i){
-  const r = records[i];
-
-  const d = prompt("วันที่ (YYYY-MM-DD)", r.date);
-  if(d === null) return;
-
-  const t = prompt("รายการ", r.title);
-  if(t === null) return;
-
-  const a = prompt("จำนวนเงิน", r.amount);
-  if(a === null || isNaN(a)) return;
-
-  const ty = prompt("ประเภท: income / expense", r.type);
-  if(!["income","expense"].includes(ty)) return;
-
-  records[i] = {
-    date: d,
-    title: t,
-    amount: +a,
-    type: ty
-  };
-
-  localStorage.setItem("records", JSON.stringify(records));
-  render();
-}
-
-
+if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js");
 </script>
 </body>
 </html>
-
