@@ -246,6 +246,26 @@ function press(n){
 
 render();
 if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js");
+
+<script>
+/* ===== CONFIRM EXIT ON BACK ===== */
+(function () {
+  // ดัน state ปลอม 1 ชั้น
+  history.pushState(null, "", location.href);
+
+  window.addEventListener("popstate", function () {
+    const ok = confirm("ต้องการปิดโปรแกรมหรือไม่?");
+    if (ok) {
+      // อนุญาตให้ back ออก
+      history.back();
+    } else {
+      // ดัน state กลับ เพื่อไม่ให้ออก
+      history.pushState(null, "", location.href);
+    }
+  });
+})();
+</script>
+
 </script>
 </body>
 </html>
