@@ -1,13 +1,10 @@
-<!DOCTYPE html>
-<html lang="th">
+<!DOCTYPE html><html lang="th">
 <head>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0d6efd">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บัญชีรายรับรายจ่าย</title>
-
-<style>
+<title>บัญชีรายรับรายจ่าย</title><link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d6efd"><style>
+/* ===== BASIC ===== */
 body{margin:0;font-family:system-ui,sans-serif;background:#f4f6f9}
 header{background:#0d6efd;color:#fff;padding:14px;text-align:center}
 #version{font-size:12px;opacity:.8}
@@ -15,257 +12,129 @@ main{padding:12px}
 .card{background:#fff;border-radius:12px;padding:12px;margin-bottom:12px}
 input,select,button{width:100%;padding:10px;margin-top:6px;font-size:14px}
 button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
-.record{display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid #eee;cursor:pointer}
+
+/* ===== RECORD LIST ===== */
+.record{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:8px 0;border-bottom:1px solid #eee;cursor:pointer}
 .income{color:#0d6efd}
 .expense{color:#dc3545}
 .highlight{background:yellow}
 
-/* ===== PIN ===== */
-#pinLock{
-  position:fixed;inset:0;background:#111;color:#fff;
-  display:flex;flex-direction:column;justify-content:center;align-items:center;
-  z-index:999
-}
+/* ===== PIN LOCK ===== */
+#pinLock{position:fixed;inset:0;background:#111;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:1000}
 .pin-dots{font-size:32px;letter-spacing:10px}
 .keypad{display:grid;grid-template-columns:repeat(3,80px);gap:10px;margin-top:20px}
 .keypad button{height:60px;font-size:20px;border-radius:10px}
 
-/* ===== EDIT MODAL ===== */
-#editModal{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:1000;
-}
-.modal-box{
-  background:#fff;
-  width:90%;
-  max-width:360px;
-  border-radius:16px;
-  padding:16px;
-  animation:pop .2s ease;
-}
-@keyframes pop{
-  from{transform:scale(.9);opacity:0}
-  to{transform:scale(1);opacity:1}
-}
-.type-switch{display:flex;gap:8px;margin-top:10px}
-.type-switch button{flex:1;background:#eee;color:#000}
-.type-switch .active{background:#0d6efd;color:#fff}
-.modal-actions{display:flex;gap:8px;margin-top:12px}
-.modal-actions button{flex:1}
-.danger{background:#dc3545}
-.ghost{background:#6c757d}
-</style>
-</head>
+/* ===== EDIT POPUP ===== */
+#editPopup{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;justify-content:center;align-items:center;z-index:1500}
+.edit-box{background:#fff;width:90%;max-width:360px;border-radius:16px;padding:16px;animation:pop .2s ease}
+.edit-box h3{text-align:center;margin:0 0 10px}
+.edit-actions{display:flex;gap:8px;margin-top:10px}
+.edit-actions button{flex:1}
+.btn-delete{background:#dc3545}
+.btn-cancel{background:#adb5bd}
 
-<body>
+/* ===== EXIT POPUP ===== */
+#exitPopup{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;justify-content:center;align-items:center;z-index:2000}
+.exit-box{background:#fff;width:85%;max-width:320px;border-radius:16px;padding:18px;text-align:center;animation:pop .2s ease}
+.exit-title{font-size:18px;font-weight:600;margin-bottom:6px}
+.exit-text{font-size:14px;color:#666;margin-bottom:16px}
+.exit-actions{display:flex;gap:10px}
+.exit-actions button{flex:1;padding:10px;border-radius:10px}
+.btn-exit{background:#dc3545}
 
-<header>
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+</style></head>
+<body><header>
 📊 บัญชีรายรับรายจ่าย
-<div id="version">Version 1.5.0</div>
-</header>
-
-<main>
-
+<div id="version">Version 1.6.0</div>
+</header><main>
 <div class="card">
-  <input type="date" id="date">
-  <input type="text" id="title" placeholder="รายการ">
-  <input type="number" id="amount" placeholder="จำนวนเงิน">
-  <select id="type">
-    <option value="income">รายรับ</option>
-    <option value="expense">รายจ่าย</option>
-  </select>
-  <button onclick="addRecord()">➕ เพิ่มรายการ</button>
+<input type="date" id="date">
+<input type="text" id="title" placeholder="รายการ">
+<input type="number" id="amount" placeholder="จำนวนเงิน">
+<select id="type">
+<option value="income">รายรับ</option>
+<option value="expense">รายจ่าย</option>
+</select>
+<button onclick="addRecord()">➕ เพิ่มรายการ</button>
+</div><div class="card">
+<input type="text" id="search" placeholder="🔍 ค้นหา..." oninput="render()">
+</div><div class="card" id="list"></div><div class="card">
+<button onclick="showSummary()">📊 สรุปรายการ</button>
+<button onclick="backup()">📤 Backup</button>
+<button onclick="restore()">📥 Restore</button>
+<button onclick="exportExcel()">📊 Export Excel</button>
 </div>
-
-<div class="card">
-  <input type="text" id="search" placeholder="🔍 ค้นหา..." oninput="render()">
+</main><!-- PIN LOCK --><div id="pinLock">
+<div id="pinTitle">ตั้ง PIN 4 หลัก</div>
+<div class="pin-dots" id="dots">____</div>
+<div class="keypad"></div>
+</div><!-- EDIT POPUP --><div id="editPopup">
+<div class="edit-box">
+<h3>แก้ไขรายการ</h3>
+<input type="date" id="eDate">
+<input type="text" id="eTitle" placeholder="รายการ">
+<input type="number" id="eAmount" placeholder="จำนวนเงิน">
+<select id="eType">
+<option value="income">รายรับ</option>
+<option value="expense">รายจ่าย</option>
+</select>
+<div class="edit-actions">
+<button class="btn-delete" onclick="deleteRecord()">ลบ</button>
+<button class="btn-cancel" onclick="closeEdit()">ยกเลิก</button>
+<button onclick="saveEdit()">บันทึก</button>
 </div>
-
-<div class="card" id="list"></div>
-
-<div class="card">
-  <button onclick="showSummary()">📊 สรุปรายการ</button>
-  <button onclick="backup()">📤 Backup</button>
-  <button onclick="restore()">📥 Restore</button>
-  <button onclick="exportExcel()">📊 Export Excel</button>
 </div>
-
-</main>
-
-<!-- ===== EDIT POPUP ===== -->
-<div id="editModal">
-  <div class="modal-box">
-    <h3>✏️ แก้ไขรายการ</h3>
-    <input type="date" id="editDate">
-    <input type="text" id="editTitle">
-    <input type="number" id="editAmount">
-
-    <div class="type-switch">
-      <button id="btnIncome" onclick="setEditType('income')">รายรับ</button>
-      <button id="btnExpense" onclick="setEditType('expense')">รายจ่าย</button>
-    </div>
-
-    <div class="modal-actions">
-      <button onclick="saveEdit()">บันทึก</button>
-      <button class="danger" onclick="deleteEdit()">ลบ</button>
-      <button class="ghost" onclick="closeEdit()">ยกเลิก</button>
-    </div>
-  </div>
+</div><!-- EXIT POPUP --><div id="exitPopup">
+<div class="exit-box">
+<div class="exit-title">ออกจากแอป?</div>
+<div class="exit-text">คุณต้องการปิดโปรแกรมหรือไม่</div>
+<div class="exit-actions">
+<button class="btn-cancel" onclick="closeExit()">ยกเลิก</button>
+<button class="btn-exit" onclick="exitApp()">ออก</button>
 </div>
-
-<!-- ===== PIN LOCK ===== -->
-<div id="pinLock">
-  <div id="pinTitle">ตั้ง PIN 4 หลัก</div>
-  <div class="pin-dots" id="dots">____</div>
-  <div class="keypad"></div>
 </div>
-
-<script>
+</div><script>
+/* ===== DATA ===== */
 const records = JSON.parse(localStorage.getItem("records")||"[]");
 const PIN_KEY="pinCode";
+let editIndex=null;
 
-/* ===== ADD ===== */
-function addRecord(){
-  records.push({
-    date:date.value,
-    title:title.value,
-    amount:+amount.value,
-    type:type.value
-  });
-  localStorage.setItem("records",JSON.stringify(records));
-  render();
-}
+/* ===== RECORD ===== */
+function addRecord(){records.push({date:date.value,title:title.value,amount:+amount.value,type:type.value});localStorage.setItem("records",JSON.stringify(records));render();}
 
-/* ===== RENDER ===== */
-function render(){
-  const q=search.value.toLowerCase();
-  list.innerHTML="";
-  records
-    .sort((a,b)=>a.date.localeCompare(b.date))
-    .filter(r=>r.title.toLowerCase().includes(q))
-    .forEach((r,i)=>{
-      list.innerHTML+=`
-      <div class="record ${r.type}" onclick="openEdit(${i})">
-        <span>${r.date} ${r.title}</span>
-        <span>${r.amount}</span>
-      </div>`;
-    });
-}
+function render(){const q=search.value.toLowerCase();list.innerHTML="";records.sort((a,b)=>a.date.localeCompare(b.date)).filter(r=>r.title.toLowerCase().includes(q)).forEach((r,i)=>{let t=r.title;if(q)t=t.replace(new RegExp(q,"gi"),m=>`<span class=highlight>${m}</span>`);list.innerHTML+=`<div class="record ${r.type}" onclick="openEdit(${i})"><span>${r.date} ${t}</span><span>${r.amount}</span></div>`})}
 
 /* ===== EDIT ===== */
-let editIndex=null, editType="income";
-function openEdit(i){
-  editIndex=i;
-  const r=records[i];
-  editDate.value=r.date;
-  editTitle.value=r.title;
-  editAmount.value=r.amount;
-  setEditType(r.type);
-  editModal.style.display="flex";
-}
-function closeEdit(){editModal.style.display="none"}
-function setEditType(t){
-  editType=t;
-  btnIncome.classList.toggle("active",t==="income");
-  btnExpense.classList.toggle("active",t==="expense");
-}
-function saveEdit(){
-  records[editIndex]={
-    date:editDate.value,
-    title:editTitle.value,
-    amount:+editAmount.value,
-    type:editType
-  };
-  localStorage.setItem("records",JSON.stringify(records));
-  closeEdit();render();
-}
-function deleteEdit(){
-  if(!confirm("ลบรายการนี้?"))return;
-  records.splice(editIndex,1);
-  localStorage.setItem("records",JSON.stringify(records));
-  closeEdit();render();
-}
+function openEdit(i){editIndex=i;const r=records[i];eDate.value=r.date;eTitle.value=r.title;eAmount.value=r.amount;eType.value=r.type;editPopup.style.display="flex"}
+function closeEdit(){editPopup.style.display="none"}
+function saveEdit(){records[editIndex]={date:eDate.value,title:eTitle.value,amount:+eAmount.value,type:eType.value};localStorage.setItem("records",JSON.stringify(records));closeEdit();render();}
+function deleteRecord(){if(!confirm("ลบรายการนี้?") )return;records.splice(editIndex,1);localStorage.setItem("records",JSON.stringify(records));closeEdit();render();}
 
-/* ===== SUMMARY / BACKUP / EXPORT ===== */
-function showSummary(){
-  let i=0,e=0;
-  records.forEach(r=>r.type==="income"?i+=r.amount:e+=r.amount);
-  alert(`รายรับ ${i}\nรายจ่าย ${e}\nคงเหลือ ${i-e}`);
-}
-function backup(){
-  download(new Blob([JSON.stringify(localStorage)],{type:"application/json"}),"backup.json");
-}
-function restore(){
-  const i=document.createElement("input");i.type="file";
-  i.onchange=e=>{
-    const r=new FileReader();
-    r.onload=()=>{
-      const d=JSON.parse(r.result);
-      for(let k in d)localStorage.setItem(k,d[k]);
-      location.reload();
-    };
-    r.readAsText(e.target.files[0]);
-  };
-  i.click();
-}
-function exportExcel(){
-  let html="<table><tr><th>วันที่</th><th>รายการ</th><th>จำนวน</th><th>ประเภท</th></tr>";
-  records.forEach(r=>html+=`<tr><td>${r.date}</td><td>${r.title}</td><td>${r.amount}</td><td>${r.type}</td></tr>`);
-  download(new Blob(['\ufeff'+html],{type:"application/vnd.ms-excel"}),"records.xls");
-}
-function download(b,n){
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(b);a.download=n;a.click();
-}
+/* ===== SUMMARY ===== */
+function showSummary(){let i=0,e=0;records.forEach(r=>r.type==="income"?i+=r.amount:e+=r.amount);alert(`รายรับ: ${i}\nรายจ่าย: ${e}\nคงเหลือ: ${i-e}`)}
+
+/* ===== BACKUP / RESTORE / EXPORT ===== */
+function backup(){download(new Blob([JSON.stringify(localStorage)],{type:"application/json"}),"backup.json")}
+function restore(){const f=document.createElement("input");f.type="file";f.onchange=e=>{const r=new FileReader();r.onload=()=>{const d=JSON.parse(r.result);for(let k in d)localStorage.setItem(k,d[k]);location.reload()};r.readAsText(e.target.files[0])};f.click()}
+function exportExcel(){let h="<table><tr><th>วันที่</th><th>รายการ</th><th>จำนวน</th><th>ประเภท</th></tr>";records.forEach(r=>h+=`<tr><td>${r.date}</td><td>${r.title}</td><td>${r.amount}</td><td>${r.type}</td></tr>`);h+="</table>";download(new Blob(['\ufeff'+h],{type:"application/vnd.ms-excel"}),"records.xls")}
+function download(b,n){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=n;a.click()}
 
 /* ===== PIN ===== */
-const pinLock=document.getElementById("pinLock");
-const dots=document.getElementById("dots");
-const pinTitle=document.getElementById("pinTitle");
-let pin="",savedPIN=localStorage.getItem(PIN_KEY);
-let mode=savedPIN?"unlock":"setup";
-pinTitle.textContent=mode==="setup"?"ตั้ง PIN 4 หลัก":"ใส่ PIN";
-const pad=document.querySelector(".keypad");
-for(let i=1;i<=9;i++)btn(i);btn(0);
-function btn(n){
-  const b=document.createElement("button");
-  b.textContent=n;b.onclick=()=>press(n);pad.appendChild(b);
-}
-function press(n){
-  pin+=n;dots.textContent=pin.padEnd(4,"_");
-  if(pin.length===4){
-    if(mode==="setup"){localStorage.setItem(PIN_KEY,pin);}
-    else if(pin!==savedPIN){alert("PIN ผิด");pin="";dots.textContent="____";return;}
-    pinLock.style.display="none";pin="";dots.textContent="____";
-  }
-}
+const pinLock=document.getElementById("pinLock"),dots=document.getElementById("dots"),pinTitle=document.getElementById("pinTitle");let pin="";const saved=localStorage.getItem(PIN_KEY);let mode=saved?"unlock":"setup";pinTitle.textContent=mode==="setup"?"ตั้ง PIN 4 หลัก":"ใส่ PIN";
+function buildPad(){const p=document.querySelector('.keypad');p.innerHTML="";for(let i=1;i<=9;i++)btn(i);btn(0)}
+function btn(n){const b=document.createElement('button');b.textContent=n;b.onclick=()=>press(n);document.querySelector('.keypad').appendChild(b)}
+buildPad();
+function press(n){pin+=n;dots.textContent=pin.padEnd(4,"_");if(pin.length===4){if(mode==="setup"){localStorage.setItem(PIN_KEY,pin);pinLock.style.display="none"}else if(pin===saved){pinLock.style.display="none"}else alert("PIN ไม่ถูกต้อง");pin="";dots.textContent="____"}}
 
+/* ===== EXIT HANDLER ===== */
+const exitPopup=document.getElementById("exitPopup");let allowExit=false;history.pushState(null,"",location.href);
+window.addEventListener("popstate",()=>{if(allowExit){allowExit=false;return;}exitPopup.style.display="flex";history.pushState(null,"",location.href)});
+function closeExit(){exitPopup.style.display="none"}
+function exitApp(){allowExit=true;exitPopup.style.display="none";history.back()}
+
+if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js")}
 render();
-if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js");
-
-<script>
-/* ===== CONFIRM EXIT ON BACK ===== */
-(function () {
-  // ดัน state ปลอม 1 ชั้น
-  history.pushState(null, "", location.href);
-
-  window.addEventListener("popstate", function () {
-    const ok = confirm("ต้องการปิดโปรแกรมหรือไม่?");
-    if (ok) {
-      // อนุญาตให้ back ออก
-      history.back();
-    } else {
-      // ดัน state กลับ เพื่อไม่ให้ออก
-      history.pushState(null, "", location.href);
-    }
-  });
-})();
-</script>
-
-</script>
-</body>
+</script></body>
 </html>
