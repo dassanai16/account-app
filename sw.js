@@ -1,5 +1,7 @@
-// 🔔 เปลี่ยนชื่อตรงนี้ทุกครั้งที่มีอัปเดต
-const CACHE = "acc-pwa-v1.5.1";
+// ==============================
+//  Service Worker
+// ==============================
+const CACHE_NAME = "acc-pwa-v1.6.0";
 
 const ASSETS = [
   "./",
@@ -7,40 +9,66 @@ const ASSETS = [
   "./manifest.json"
 ];
 
-// ===== INSTALL =====
+// ---------- INSTALL ----------
 self.addEventListener("install", event => {
-  self.skipWaiting(); // บังคับใช้ตัวใหม่ทันที
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
 });
 
-// ===== ACTIVATE =====
+// ---------- ACTIVATE ----------
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys
-          .filter(key => key !== CACHE)
-          .map(key => caches.delete(key))
+        keys.map(key => {
+          if (key !== CACHE_NAME) return caches.delete(key);
+        })
       )
     )
   );
-  self.clients.claim(); // คุมหน้าเว็บทันที
+  self.clients.claim();
 });
 
-// ===== FETCH =====
-// ใช้ network ก่อน → fallback เป็น cache
+// ---------- FETCH ----------
 self.addEventListener("fetch", event => {
+  const req = event.request;
+
+  // ไม่ cache request ที่ไม่ใช่ GET
+  if (req.method !== "GET") return;
+
+  // HTML → network first
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  // Static files → cache first
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        const copy = response.clone();
-        caches.open(CACHE).then(cache =>
-          cache.put(event.request, copy)
-        );
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(req).then(cache => {
+      return (
+        cache ||
+        fetch(req).then(res => {
+          if (!res || res.status !== 200) return res;
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, copy));
+          return res;
+        })
+      );
+    })
   );
+});
+
+// ---------- FORCE UPDATE ----------
+self.addEventListener("message", event => {
+  if (event.data === "SKIP_WAITING") self.skipWaiting();
 });
