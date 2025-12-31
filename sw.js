@@ -1,12 +1,15 @@
 // ==============================
-//  Service Worker
+//  Service Worker (Stable Version)
 // ==============================
-const CACHE_NAME = "acc-pwa-v1.6.0";
+const CACHE_NAME = "acc-pwa-v1.6.3";
+
+// ใช้ scope อัตโนมัติ (รองรับ GitHub Pages)
+const BASE = self.registration.scope;
 
 const ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.json"
+  BASE,
+  BASE + "index.html",
+  BASE + "manifest.json"
 ];
 
 // ---------- INSTALL ----------
@@ -35,10 +38,10 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const req = event.request;
 
-  // ไม่ cache request ที่ไม่ใช่ GET
+  // only GET
   if (req.method !== "GET") return;
 
-  // HTML → network first
+  // HTML navigation → network first
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req)
@@ -47,23 +50,22 @@ self.addEventListener("fetch", event => {
           caches.open(CACHE_NAME).then(c => c.put(req, copy));
           return res;
         })
-        .catch(() => caches.match("./index.html"))
+        .catch(() => caches.match(BASE + "index.html"))
     );
     return;
   }
 
-  // Static files → cache first
+  // assets → cache first
   event.respondWith(
-    caches.match(req).then(cache => {
-      return (
-        cache ||
-        fetch(req).then(res => {
-          if (!res || res.status !== 200) return res;
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(req, copy));
-          return res;
-        })
-      );
+    caches.match(req).then(cached => {
+      if (cached) return cached;
+
+      return fetch(req).then(res => {
+        if (!res || res.status !== 200) return res;
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then(c => c.put(req, copy));
+        return res;
+      });
     })
   );
 });
