@@ -1,1 +1,165 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d6efd">
+<link rel="manifest" href="manifest.json">
+
+<title>บัญชีรายรับรายจ่าย</title>
+
+<style>
+body{margin:0;font-family:system-ui;background:#f4f6f9}
+header{background:#0d6efd;color:#fff;padding:14px;text-align:center}
+#version{font-size:12px;opacity:.8}
+
+main{padding:12px}
+.card{background:#fff;border-radius:12px;padding:12px;margin-bottom:12px}
+input,select,button{width:100%;padding:10px;margin-top:6px;font-size:14px}
+button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
+
+.record{display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid #eee}
+.income{color:#0d6efd}
+.expense{color:#dc3545}
+
+/* ===== EXIT POPUP ===== */
+.exit-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+}
+.exit-box{
+  background:#fff;
+  border-radius:16px;
+  padding:20px;
+  width:80%;
+  max-width:300px;
+  text-align:center;
+}
+.exit-actions{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+.exit-actions button{flex:1}
+.btn-cancel{background:#ccc;color:#000}
+.btn-exit{background:#dc3545}
+
+/* PIN */
+#pinLock{
+  position:fixed;
+  inset:0;
+  background:#111;
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  z-index:10000;
+}
+.keypad{display:grid;grid-template-columns:repeat(3,80px);gap:10px;margin-top:20px}
+.keypad button{height:60px;font-size:20px;border-radius:10px}
+</style>
+</head>
+
+<body>
+
+<header>
+  📊 บัญชีรายรับรายจ่าย
+  <div id="version">v1.6.0</div>
+</header>
+
+<main>
+  <div class="card">
+    <input type="date" id="date">
+    <input type="text" id="title" placeholder="รายการ">
+    <input type="number" id="amount" placeholder="จำนวนเงิน">
+    <select id="type">
+      <option value="income">รายรับ</option>
+      <option value="expense">รายจ่าย</option>
+    </select>
+    <button onclick="addRecord()">➕ เพิ่มรายการ</button>
+  </div>
+
+  <div class="card">
+    <input type="text" id="search" placeholder="ค้นหา..." oninput="render()">
+  </div>
+
+  <div class="card" id="list"></div>
+</main>
+
+<!-- EXIT POPUP -->
+<div class="exit-overlay" id="exitPopup">
+  <div class="exit-box">
+    <h3>ออกจากแอป?</h3>
+    <p>คุณต้องการออกหรือไม่</p>
+    <div class="exit-actions">
+      <button class="btn-cancel" onclick="closeExit()">ยกเลิก</button>
+      <button class="btn-exit" onclick="exitApp()">ออก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const records = JSON.parse(localStorage.getItem("records") || "[]");
+
+// ===== RENDER =====
+function render(){
+  const q = search.value.toLowerCase();
+  list.innerHTML = "";
+  records.filter(r=>r.title.toLowerCase().includes(q))
+    .forEach(r=>{
+      list.innerHTML += `
+      <div class="record ${r.type}">
+        <span>${r.date} ${r.title}</span>
+        <span>${r.amount}</span>
+      </div>`;
+    });
+}
+
+function addRecord(){
+  records.push({
+    date:date.value,
+    title:title.value,
+    amount:+amount.value,
+    type:type.value
+  });
+  localStorage.setItem("records", JSON.stringify(records));
+  render();
+}
+
+// ===== EXIT HANDLER =====
+history.pushState(null,"",location.href);
+
+window.addEventListener("popstate",()=>{
+  document.getElementById("exitPopup").style.display="flex";
+  history.pushState(null,"",location.href);
+});
+
+function closeExit(){
+  document.getElementById("exitPopup").style.display="none";
+}
+function exitApp(){
+  history.back();
+}
+
+// ===== SERVICE WORKER =====
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js");
+
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    location.reload();
+  });
+}
+
+// INIT
+render();
+</script>
+
+</body>
+</html>
 
