@@ -74,6 +74,10 @@ button{background:#0d6efd;color:#fff;border:none;border-radius:8px}
   <div class="card">
     <input type="text" id="search" placeholder="ค้นหา..." oninput="render()">
   </div>
+  <div class="card">
+	<button onclick="showSummary()">📊 แสดงผลรวม</button>
+  </div>
+
 
   <div class="card" id="list"></div>
 </main>
@@ -198,6 +202,25 @@ if("serviceWorker" in navigator){
 }
 
 render();
+function showSummary() {
+  let income = 0;
+  let expense = 0;
+
+  records.forEach(r => {
+    if (r.type === "income") income += r.amount;
+    else expense += r.amount;
+  });
+
+  const balance = income - expense;
+
+  alert(
+    `📊 สรุปยอดทั้งหมด\n\n` +
+    `รายรับ: ${income.toLocaleString()} บาท\n` +
+    `รายจ่าย: ${expense.toLocaleString()} บาท\n` +
+    `คงเหลือ: ${balance.toLocaleString()} บาท`
+  );
+}
+
 </script>
 
 </body>
