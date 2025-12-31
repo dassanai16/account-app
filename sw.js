@@ -1,9 +1,4 @@
-// ==============================
-//  Service Worker (Stable Version)
-// ==============================
-const CACHE_NAME = "acc-pwa-v1.6.3";
-
-// ใช้ scope อัตโนมัติ (รองรับ GitHub Pages)
+const CACHE_NAME = "acc-pwa-v2.0";
 const BASE = self.registration.scope;
 
 const ASSETS = [
@@ -12,65 +7,41 @@ const ASSETS = [
   BASE + "manifest.json"
 ];
 
-// ---------- INSTALL ----------
-self.addEventListener("install", event => {
+self.addEventListener("install", e => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))
   );
 });
 
-// ---------- ACTIVATE ----------
-self.addEventListener("activate", event => {
-  event.waitUntil(
+self.addEventListener("activate", e => {
+  e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) return caches.delete(key);
-        })
-      )
+      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
-// ---------- FETCH ----------
-self.addEventListener("fetch", event => {
-  const req = event.request;
+self.addEventListener("fetch", e => {
+  if (e.request.method !== "GET") return;
 
-  // only GET
-  if (req.method !== "GET") return;
-
-  // HTML navigation → network first
-  if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(req, copy));
-          return res;
+  if (e.request.mode === "navigate") {
+    e.respondWith(
+      fetch(e.request)
+        .then(r => {
+          const copy = r.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, copy));
+          return r;
         })
         .catch(() => caches.match(BASE + "index.html"))
     );
     return;
   }
 
-  // assets → cache first
-  event.respondWith(
-    caches.match(req).then(cached => {
-      if (cached) return cached;
-
-      return fetch(req).then(res => {
-        if (!res || res.status !== 200) return res;
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then(c => c.put(req, copy));
-        return res;
-      });
-    })
+  e.respondWith(
+    caches.match(e.request).then(res =>
+      res || fetch(e.request)
+    )
   );
-});
-
-// ---------- FORCE UPDATE ----------
-self.addEventListener("message", event => {
-  if (event.data === "SKIP_WAITING") self.skipWaiting();
 });
